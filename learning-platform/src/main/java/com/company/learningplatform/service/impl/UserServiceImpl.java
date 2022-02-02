@@ -75,7 +75,8 @@ public class UserServiceImpl implements UserService
 	}
 
 	@Override
-	public <T> void createUser(UserDto userDto, RoleDto roleDto, T userInformationDto) throws UserAlreadyExistsException
+	public <T> void createUser(UserDto userDto, RoleDto roleDto, T userInformationDto)
+			throws UserAlreadyExistsException, RoleNotFoundException
 	{
 		userRepository.findByEmail(userDto.getEmail()).ifPresent(u -> {
 			throw new UserAlreadyExistsException(MessageEnum.USER_ALREADY_EXISTS_EXCEPTION.getMessage());
@@ -113,13 +114,20 @@ public class UserServiceImpl implements UserService
 	}
 
 	@Override
-	public boolean deleteUserByUsername(String username)
+	@Transactional
+	public boolean deleteUserByUsername(String username) throws UsernameNotFoundException
 	{
-		boolean isFound = userRepository.existsByUsername(username);
-		if (isFound)
-			userRepository.deleteByUsername(username);
+		UserEntity user = userRepository.findByEmail(username).orElseThrow(() -> {
+			throw new UsernameNotFoundException(MessageEnum.USERNAME_NOT_FOUND.getMessage());
+		});
+		user.getRoles().stream()
+				.forEach(role -> {
+					role.getUsers().remove(user);
+					roleRepository.save(role);
+				});
+		userRepository.delete(user);
 
-		return isFound;
+		return true;
 	}
 
 	@Override
@@ -156,7 +164,6 @@ public class UserServiceImpl implements UserService
 	{
 		return userRepository.findByEmail(email)
 				.orElseThrow(() -> {
-					System.out.println();
 					throw new UsernameNotFoundException(MessageEnum.USERNAME_NOT_FOUND.getMessage());
 				});
 	}

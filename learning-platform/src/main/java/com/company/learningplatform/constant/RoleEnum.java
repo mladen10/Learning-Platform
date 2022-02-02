@@ -1,5 +1,7 @@
 package com.company.learningplatform.constant;
 
+import static com.company.learningplatform.constant.AuthorityConstant.*;
+
 import org.apache.commons.lang3.ArrayUtils;
 
 import lombok.AllArgsConstructor;
@@ -13,10 +15,11 @@ public enum RoleEnum
 
 	PROFFESOR(new String[] { "proffesor:1", "proffesor:2", "proffesor:3", "proffesor:4" }),
 
-	ADMIN(new String[] { "admin:1", "admin:2", "admin:3" }),
+	ADMIN(new String[] { STUDENT_CREATE, PROFESSOR_CREATE, "admin:3" }),
 
 	ROOT_ADMIN(
-			ArrayUtils.addAll(new String[] { "root_admin:1 ", "root_admin:2" }, RoleEnum.ADMIN.getAuthorities()));
+			ArrayUtils.addAll(new String[] { ADMIN_CREATE, "root_admin:2" },
+					RoleEnum.ADMIN.getAuthorities()));
 
 	private String[] authorities;
 }

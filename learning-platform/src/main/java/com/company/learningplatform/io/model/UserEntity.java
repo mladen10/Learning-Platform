@@ -1,6 +1,7 @@
 package com.company.learningplatform.io.model;
 
 import java.io.Serializable;
+import java.util.HashSet;
 import java.util.Set;
 
 import javax.persistence.CascadeType;
@@ -50,14 +51,14 @@ public class UserEntity implements Serializable
 	private String lastName;
 
 	@OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
-	private Set<UserInformationEntity> userInformation;
+	private Set<UserInformationEntity> userInformation = new HashSet<>();
 
-	@ManyToMany(cascade = { CascadeType.MERGE, CascadeType.PERSIST },
+	@ManyToMany(cascade = { CascadeType.MERGE },
 				fetch = FetchType.EAGER)
 	@JoinTable(	name = "user_role",
-				joinColumns = { @JoinColumn(name = "USER_ID", referencedColumnName = "ID") },
-				inverseJoinColumns = { @JoinColumn(name = "ROLE_ID", referencedColumnName = "ID") })
-	private Set<RoleEntity> roles;
+				joinColumns = { @JoinColumn(name = "user_id", referencedColumnName = "id") },
+				inverseJoinColumns = { @JoinColumn(name = "role_id", referencedColumnName = "id") })
+	private Set<RoleEntity> roles = new HashSet<>();
 
 	private Boolean accountNonExpired = true;
 
