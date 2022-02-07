@@ -1,10 +1,15 @@
 package com.company.learningplatform.bootstrap;
 
-import java.util.Arrays;
-import java.util.function.Function;
+import static com.company.learningplatform.constant.AuthorityConstant.ADMIN_CREATE;
+import static com.company.learningplatform.constant.AuthorityConstant.PROFESSOR_CREATE;
+import static com.company.learningplatform.constant.AuthorityConstant.STUDENT_CREATE;
+import static java.util.Map.entry;
 
-import javax.persistence.EntityManager;
-import javax.persistence.PersistenceContext;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
@@ -13,8 +18,7 @@ import com.company.learningplatform.constant.RoleEnum;
 import com.company.learningplatform.io.model.AuthorityEntity;
 import com.company.learningplatform.io.model.RoleEntity;
 import com.company.learningplatform.io.repository.AuthorityRepository;
-import com.company.learningplatform.io.repository.RoleRepository;
-import com.company.learningplatform.service.impl.RoleServiceImpl;
+import com.company.learningplatform.service.RoleService;
 
 import lombok.AllArgsConstructor;
 
@@ -22,35 +26,32 @@ import lombok.AllArgsConstructor;
 @Component
 public class DefaultAppData implements CommandLineRunner
 {
-	private final RoleRepository roleRepository;
-	private final AuthorityRepository authorityRepository;
+	private RoleService roleService;
+	private AuthorityRepository authorityRepository;
 
 	@Override
 	public void run(String... args) throws Exception
 	{
 		System.out.println("\n---------------------BOOTSTRAP---------------------\n");
 
-		defaultRoles();
+		createDefaultPermisions();
 
 		System.out.println("\n---------------------BOOTSTRAP END---------------------\n");
 	}
 
-	// @Transactional
-	private void defaultRoles()
+	private void createDefaultPermisions()
 	{
-		System.out.println("\n---------------------DEFAULT ROLES---------------------\n");
-
-		Arrays.asList(RoleEnum.values()).stream()
-				.map(new Function<RoleEnum, RoleEntity>()
+		Set<RoleEntity> setOfRoles = mapOfPermisions().entrySet().stream()
+				.map(new Function<Map.Entry<String, Set<String>>, RoleEntity>()
 				{
 					@Override
-					public RoleEntity apply(RoleEnum t)
+					public RoleEntity apply(Map.Entry<String, Set<String>> entry)
 					{
 						RoleEntity role = RoleEntity.builder()
-								.name(t.name())
+								.name(entry.getKey())
 								.build();
 
-						Arrays.asList(t.getAuthorities()).stream()
+						entry.getValue().stream()
 								.forEach(permision -> {
 									authorityRepository.findByPermision(permision).ifPresentOrElse(
 											value -> {
@@ -66,10 +67,48 @@ public class DefaultAppData implements CommandLineRunner
 								});
 						return role;
 					}
-				})
-				.forEach(role -> roleRepository.save(role));
+				}).collect(Collectors.toSet());
 
-		System.out.println("\n---------------------DEFAULT ROLES END---------------------\n");
+		roleService.createRoles(setOfRoles);
+	}
 
+	private Map<String, Set<String>> mapOfPermisions()
+	{
+		// ===============================
+		// PERMISIONS SPECIFIC FOR ROLE
+		// ===============================
+		Set<String> ONLY_STUDENT_AUTHORITIES = Set.of("student:1", "student:2");
+		Set<String> ONLY_PROFFESOR_AUTHORITIES = Set.of("proffesor:1", "proffesor:2", "proffesor:3", "proffesor:4");
+		Set<String> ONLY_ADMIN_AUTHORITIES = Set.of(STUDENT_CREATE, PROFESSOR_CREATE, "admin:3");
+		Set<String> ONLY_ROOT_ADMIN_AUTHORITIES = Set.of(ADMIN_CREATE, "root_admin:2");
+
+		// ===============================
+		// COMBINED PERMISIONS FOR ROLE
+		// ===============================
+		Set<String> STUDENT_AUTHORITIES = ONLY_STUDENT_AUTHORITIES;
+
+		Set<String> PROFFESOR_AUTHORITIES = Stream.of(
+				STUDENT_AUTHORITIES, ONLY_PROFFESOR_AUTHORITIES)
+				.flatMap(Set::stream)
+				.collect(Collectors.toSet());
+
+		Set<String> ADMIN_AUTHORITIES = Stream.of(
+				PROFFESOR_AUTHORITIES, ONLY_ADMIN_AUTHORITIES)
+				.flatMap(Set::stream)
+				.collect(Collectors.toSet());
+
+		Set<String> ROOT_ADMIN_AUTHORITIES = Stream.of(
+				ADMIN_AUTHORITIES, ONLY_ROOT_ADMIN_AUTHORITIES)
+				.flatMap(Set::stream)
+				.collect(Collectors.toSet());
+
+		// ===============================
+		// MAP ROLE ---> AUTHORITY
+		// ===============================
+		return Map.ofEntries(
+				entry(RoleEnum.STUDENT.name(), STUDENT_AUTHORITIES),
+				entry(RoleEnum.PROFFESOR.name(), PROFFESOR_AUTHORITIES),
+				entry(RoleEnum.ADMIN.name(), ADMIN_AUTHORITIES),
+				entry(RoleEnum.ROOT_ADMIN.name(), ROOT_ADMIN_AUTHORITIES));
 	}
 }

@@ -1,9 +1,6 @@
 package com.company.learningplatform.ui.api;
 
 import java.util.List;
-import java.util.Set;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
@@ -30,13 +27,9 @@ import com.company.learningplatform.constant.SecurityConstant;
 import com.company.learningplatform.event.AppEventPublisher;
 import com.company.learningplatform.event.OnCreateUserEvent;
 import com.company.learningplatform.security.UserPrincipal;
-import com.company.learningplatform.security.annotation.StudentCreatePermission;
 import com.company.learningplatform.security.token.JWTProvider;
 import com.company.learningplatform.service.UserService;
 import com.company.learningplatform.shared.Utility;
-import com.company.learningplatform.shared.dto.ProfessorInformationDto;
-import com.company.learningplatform.shared.dto.RoleDto;
-import com.company.learningplatform.shared.dto.StudentInformationDto;
 import com.company.learningplatform.shared.dto.UserDto;
 import com.company.learningplatform.shared.dto.UserInformationDto;
 import com.company.learningplatform.ui.model.request.ChangePasswordRequestModel;
@@ -45,7 +38,6 @@ import com.company.learningplatform.ui.model.request.FirstLoginRequestModel;
 import com.company.learningplatform.ui.model.request.LoginRequestModel;
 import com.company.learningplatform.ui.model.request.UpdateUserRequestModel;
 import com.company.learningplatform.ui.model.response.GenericResponse;
-import com.company.learningplatform.ui.model.response.UserResponse;
 
 import lombok.AllArgsConstructor;
 
@@ -66,21 +58,21 @@ public class UserController
 	// @StudentCreatePermission
 	ResponseEntity<GenericResponse> createStudent(@Valid @RequestBody CreateUserRequestModel createUserRequestModel)
 	{
-		return createUser(createUserRequestModel, RoleEnum.STUDENT, new StudentInformationDto());
+		return createUser(createUserRequestModel, RoleEnum.STUDENT);
 	}
 
 	@PostMapping(value = "/createProfessor")
 	public ResponseEntity<GenericResponse> createProfessor(
 			@Valid @RequestBody CreateUserRequestModel createUserRequestModel)
 	{
-		return createUser(createUserRequestModel, RoleEnum.PROFFESOR, new ProfessorInformationDto());
+		return createUser(createUserRequestModel, RoleEnum.PROFFESOR);
 	}
 
 	@PostMapping(value = "/createAdmin")
 	public ResponseEntity<GenericResponse> createAdmin(
 			@Valid @RequestBody CreateUserRequestModel createUserRequestModel)
 	{
-		return createUser(createUserRequestModel, RoleEnum.ADMIN, new ProfessorInformationDto());
+		return createUser(createUserRequestModel, RoleEnum.ADMIN);
 	}
 
 	@PostMapping("/login")
@@ -115,10 +107,9 @@ public class UserController
 	}
 
 	@GetMapping("/find/{email}")
-	public ResponseEntity<UserResponse> getUser(@PathVariable("email") String email)
+	public ResponseEntity<UserDto> getUser(@PathVariable("email") String email)
 	{
-		UserResponse user = modelMapper.map(userService.getUser(email),
-				UserResponse.class);
+		UserDto user = userService.getUser(email);
 		return new ResponseEntity<>(user, HttpStatus.OK);
 	}
 
@@ -158,22 +149,16 @@ public class UserController
 	}
 
 	private <T extends UserInformationDto> ResponseEntity<GenericResponse> createUser(
-			CreateUserRequestModel createUserRequestModel,
-			RoleEnum role,
-			T userInformationDto)
+			CreateUserRequestModel createUserReqModel, RoleEnum role)
 	{
-		UserDto userDto = modelMapper.map(createUserRequestModel, UserDto.class);
-		RoleDto roleDto = RoleDto.builder().name(role.name()).build();
-
-		userService.createUser(userDto, roleDto, userInformationDto);
-
-		appPublisher.publishEvent(new OnCreateUserEvent(this, userDto.getEmail()));
+		userService.createUser(createUserReqModel, role);
+		appPublisher.publishEvent(new OnCreateUserEvent(this, createUserReqModel.getEmail()));
 
 		// return Utility.response(HttpStatus.CREATED,
 		// MessageEnum.SUCCESFFUL_CREATE.getMessage());
 		// =============================================================================================
 		// TMP CODE
-		String t = jwtProvider.tokenForEmailConfirm(userDto.getEmail());
+		String t = jwtProvider.tokenForEmailConfirm(createUserReqModel.getEmail());
 		return Utility.response(HttpStatus.CREATED, t);
 		// =============================================================================================
 	}

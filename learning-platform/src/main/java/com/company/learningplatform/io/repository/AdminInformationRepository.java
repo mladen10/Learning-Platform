@@ -6,7 +6,8 @@ import org.springframework.stereotype.Repository;
 import com.company.learningplatform.io.model.AdminInformationEntity;
 
 @Repository
-public interface AdminInformationRepository extends JpaRepository<AdminInformationEntity, Long>
+public interface AdminInformationRepository
+		extends JpaRepository<AdminInformationEntity, Long>, UserInformationRepository<AdminInformationEntity>
 {
 
 }

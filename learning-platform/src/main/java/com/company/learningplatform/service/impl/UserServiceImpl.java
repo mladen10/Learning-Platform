@@ -1,5 +1,7 @@
 package com.company.learningplatform.service.impl;
 
+import java.util.EnumSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -7,23 +9,28 @@ import java.util.stream.Collectors;
 import org.modelmapper.ModelMapper;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.company.learningplatform.constant.MessageEnum;
+import com.company.learningplatform.constant.RoleEnum;
 import com.company.learningplatform.constant.UserConstant;
 import com.company.learningplatform.exception.RoleNotFoundException;
 import com.company.learningplatform.exception.UserAlreadyExistsException;
+import com.company.learningplatform.io.model.AdminInformationEntity;
+import com.company.learningplatform.io.model.ProfessorInformationEntity;
 import com.company.learningplatform.io.model.RoleEntity;
+import com.company.learningplatform.io.model.StudentInformationEntity;
 import com.company.learningplatform.io.model.UserEntity;
 import com.company.learningplatform.io.model.UserInformationEntity;
 import com.company.learningplatform.io.repository.RoleRepository;
 import com.company.learningplatform.io.repository.UserRepository;
 import com.company.learningplatform.security.UserPrincipal;
+import com.company.learningplatform.service.RoleService;
 import com.company.learningplatform.service.UserService;
-import com.company.learningplatform.shared.dto.RoleDto;
 import com.company.learningplatform.shared.dto.UserDto;
+import com.company.learningplatform.ui.model.request.CreateUserRequestModel;
 
 import lombok.AllArgsConstructor;
 
@@ -33,8 +40,9 @@ public class UserServiceImpl implements UserService
 {
 	private UserRepository userRepository;
 	private RoleRepository roleRepository;
-	private BCryptPasswordEncoder bCryptPasswordEncoder;
+	private PasswordEncoder passwordEncoder;
 	private ModelMapper modelMapper;
+	private RoleService roleService;
 
 	@Override
 	public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException
@@ -44,7 +52,6 @@ public class UserServiceImpl implements UserService
 				.orElseThrow(() -> {
 					throw new UsernameNotFoundException(MessageEnum.USERNAME_NOT_FOUND.getMessage());
 				}));
-
 	}
 
 	@Override
@@ -64,37 +71,32 @@ public class UserServiceImpl implements UserService
 
 		UserEntity userEntity = modelMapper.map(userDto, UserEntity.class);
 
-		userEntity.setPassword(bCryptPasswordEncoder.encode(UserConstant.TEMP_PASSWORD));
+		userEntity.setPassword(passwordEncoder.encode(UserConstant.TEMP_PASSWORD));
 		userEntity.setRoles(roles);
 		userEntity.setUsername(userDto.getEmail());
 		userEntity.setUserInformation(mapList(userDto.getUserInformation(), UserInformationEntity.class));
 		userEntity.getUserInformation().stream().forEach(e -> e.setUser(userEntity));
 
 		userRepository.save(userEntity);
-
 	}
 
 	@Override
-	public <T> void createUser(UserDto userDto, RoleDto roleDto, T userInformationDto)
+	public UserDto createUser(CreateUserRequestModel createUserReqModel, RoleEnum role)
 			throws UserAlreadyExistsException, RoleNotFoundException
 	{
-		userRepository.findByEmail(userDto.getEmail()).ifPresent(u -> {
+		userRepository.findByEmail(createUserReqModel.getEmail()).ifPresent(u -> {
 			throw new UserAlreadyExistsException(MessageEnum.USER_ALREADY_EXISTS_EXCEPTION.getMessage());
 		});
 
-		RoleEntity roleEntity = roleRepository.findByName(roleDto.getName())
-				.orElseThrow(() -> {
-					throw new RoleNotFoundException(MessageEnum.ROLE_NOT_FOUND_EXCEPTION.getMessage());
-				});
-		UserEntity userEntity = modelMapper.map(userDto, UserEntity.class);
+		RoleEntity roleEntity = roleService.<RoleEntity>findByName(role.name(), RoleEntity.class);
+
+		UserEntity userEntity = modelMapper.map(createUserReqModel, UserEntity.class);
 		userEntity.getRoles().add(roleEntity);
-		userEntity.getUserInformation()
-				.add(modelMapper.map(userInformationDto, UserInformationEntity.class));
-		userEntity.getUserInformation().stream().forEach(e -> e.setUser(userEntity));
-		userEntity.setPassword(bCryptPasswordEncoder.encode(UserConstant.TEMP_PASSWORD));
+		userEntity.setPassword(passwordEncoder.encode(UserConstant.TEMP_PASSWORD));
+		userEntity.getUserInformation().add(createUserInformationBasedOnRole(role));
+		userEntity.getUserInformation().iterator().next().setUser(userEntity);
 
-		userRepository.save(userEntity);
-
+		return modelMapper.map(userRepository.save(userEntity), UserDto.class);
 	}
 
 	@Override
@@ -141,8 +143,8 @@ public class UserServiceImpl implements UserService
 	public boolean changePassword(String email, String oldPassword, String newPassword)
 	{
 		UserEntity user = this.findByEmail(email);
-		if (bCryptPasswordEncoder.matches(user.getPassword(), bCryptPasswordEncoder.encode(oldPassword))) {
-			user.setPassword(bCryptPasswordEncoder.encode(newPassword));
+		if (passwordEncoder.matches(user.getPassword(), passwordEncoder.encode(oldPassword))) {
+			user.setPassword(passwordEncoder.encode(newPassword));
 			userRepository.save(user);
 			return true;
 		}
@@ -153,19 +155,31 @@ public class UserServiceImpl implements UserService
 	public void firstLogin(String email, String newPassword)
 	{
 		UserEntity user = this.findByEmail(email);
-		user.setPassword(bCryptPasswordEncoder.encode(newPassword));
+		user.setPassword(passwordEncoder.encode(newPassword));
 		userRepository.save(user);
 	}
+
 	// ===============================
 	// private methods
 	// ===============================
-
 	private UserEntity findByEmail(String email) throws UsernameNotFoundException
 	{
 		return userRepository.findByEmail(email)
 				.orElseThrow(() -> {
 					throw new UsernameNotFoundException(MessageEnum.USERNAME_NOT_FOUND.getMessage());
 				});
+	}
+
+	private UserInformationEntity createUserInformationBasedOnRole(RoleEnum role)
+	{
+		if (role.equals(RoleEnum.STUDENT)) {
+			return new StudentInformationEntity();
+		} else if (role.equals(RoleEnum.PROFFESOR)) {
+			return new ProfessorInformationEntity();
+		} else if (role.equals(RoleEnum.ADMIN) || role.equals(RoleEnum.ROOT_ADMIN)) {
+			return new AdminInformationEntity();
+		}
+		return null;
 	}
 
 	private <S, T> List<T> mapList(List<S> source, Class<T> targetClass)

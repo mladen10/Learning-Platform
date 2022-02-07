@@ -17,8 +17,8 @@ public class UpdateUserRequestModel
 	private String email;
 
 	@NotNull
-
 	private String firstName;
+
 	@NotNull
 	private String lastName;
 }

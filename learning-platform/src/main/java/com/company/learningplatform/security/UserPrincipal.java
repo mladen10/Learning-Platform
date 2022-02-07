@@ -9,30 +9,30 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
-import com.company.learningplatform.io.model.RoleEntity;
 import com.company.learningplatform.io.model.UserEntity;
 
-import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 
 @Getter
 @Setter
-@AllArgsConstructor
+@RequiredArgsConstructor
 public class UserPrincipal implements UserDetails, CredentialsContainer
 {
-
 	private static final long serialVersionUID = -831300089880427699L;
 
-	private UserEntity userEntity;
+	private final UserEntity userEntity;
+	private PermisionHolder permisions;
 
 	@Override
 	public Collection<? extends GrantedAuthority> getAuthorities()
 	{
-		return this.userEntity.getRoles().stream()
-				.map(RoleEntity::getAuthorities)
+		return this.userEntity.getRoles()
+				.stream()
+				.map(roleEntity -> permisions.getPermisionMap().get(roleEntity.getName()))
 				.flatMap(Set::stream)
-				.map(authority -> new SimpleGrantedAuthority(authority.getPermision()))
+				.map(permision -> new SimpleGrantedAuthority(permision))
 				.collect(Collectors.toSet());
 	}
 
@@ -83,5 +83,4 @@ public class UserPrincipal implements UserDetails, CredentialsContainer
 	{
 		// this.password = null; ???
 	}
-
 }

@@ -2,7 +2,6 @@ package com.company.learningplatform.io.model;
 
 import java.io.Serializable;
 
-import javax.persistence.CascadeType;
 import javax.persistence.Entity;
 import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
@@ -24,9 +23,9 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "user_properties")
+@Table(name = "user_information")
 @Inheritance(strategy = InheritanceType.JOINED)
-public class UserInformationEntity implements Serializable
+public abstract class UserInformationEntity implements Serializable
 {
 
 	private static final long serialVersionUID = -3037438094840726708L;
@@ -35,7 +34,7 @@ public class UserInformationEntity implements Serializable
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;
 
-	@ManyToOne(cascade = CascadeType.ALL, fetch = FetchType.EAGER, optional = false)
+	@ManyToOne(fetch = FetchType.LAZY, optional = false)
 	@JoinColumn(name = "user_id")
 	private UserEntity user;
 

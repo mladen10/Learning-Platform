@@ -50,7 +50,9 @@ public class UserEntity implements Serializable
 	@Column(nullable = false)
 	private String lastName;
 
-	@OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+	@OneToMany(	mappedBy = "user",
+				cascade = { CascadeType.REMOVE, CascadeType.MERGE, CascadeType.PERSIST },
+				fetch = FetchType.EAGER)
 	private Set<UserInformationEntity> userInformation = new HashSet<>();
 
 	@ManyToMany(cascade = { CascadeType.MERGE },

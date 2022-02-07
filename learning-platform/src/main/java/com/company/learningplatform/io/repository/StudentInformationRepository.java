@@ -6,7 +6,8 @@ import org.springframework.stereotype.Repository;
 import com.company.learningplatform.io.model.StudentInformationEntity;
 
 @Repository
-public interface StudentInformationRepository extends JpaRepository<StudentInformationEntity, Long>
+public interface StudentInformationRepository
+		extends JpaRepository<StudentInformationEntity, Long>, UserInformationRepository<StudentInformationEntity>
 {
 
 }

@@ -25,11 +25,19 @@ public interface RoleRepository extends JpaRepository<RoleEntity, Integer>
 
 	@EntityGraph(value = "role-authority-graph", type = EntityGraphType.LOAD)
 	@Query(value = "select role from RoleEntity role where role.name=?1")
-	Optional<RoleEntity> findByNamesWihtAuthorities(String roleName);
+	Optional<RoleEntity> findByNameWihtAuthorities(String roleName);
 
 	@EntityGraph(attributePaths = { "authorities.roles" }, type = EntityGraphType.LOAD)
 	@Query(value = "select role from RoleEntity role where role.name=?1")
-	Optional<RoleEntity> findByNamesWihtAuthoritiesNRoles(String roleName);
+	Optional<RoleEntity> findByNameWihtAuthoritiesNRoles(String roleName);
+
+	@EntityGraph(value = "role-authority-graph", type = EntityGraphType.LOAD)
+	@Query(value = "select role from RoleEntity role where role.name in (:roleNames)")
+	Optional<Set<RoleEntity>> findByNamesWihtAuthorities(@Param("roleNames") List<String> roleNames);
+
+	@EntityGraph(value = "role-authority-graph", type = EntityGraphType.LOAD)
+	@Query(value = "select role from RoleEntity role")
+	Optional<Set<RoleEntity>> findAllWihtAuthorities();
 
 	Optional<RoleEntity> findByName(String name);
 

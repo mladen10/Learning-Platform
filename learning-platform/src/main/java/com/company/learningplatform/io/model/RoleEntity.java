@@ -56,7 +56,7 @@ public class RoleEntity
 	@Builder.Default
 	private Set<UserEntity> users = new HashSet<>();
 
-	@ManyToMany(cascade = { CascadeType.MERGE }, fetch = FetchType.EAGER)
+	@ManyToMany(cascade = { CascadeType.MERGE }, fetch = FetchType.LAZY)
 	@JoinTable(	name = "role_authority",
 				joinColumns = {
 						@JoinColumn(name = "role_id", referencedColumnName = "id") },

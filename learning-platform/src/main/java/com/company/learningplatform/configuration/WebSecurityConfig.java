@@ -2,7 +2,6 @@ package com.company.learningplatform.configuration;
 
 import java.util.Arrays;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -11,7 +10,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
@@ -23,23 +22,17 @@ import com.company.learningplatform.security.filter.AppAccessDeniedHandler;
 import com.company.learningplatform.security.filter.AppAuthorizationFilter;
 import com.company.learningplatform.service.UserService;
 
+import lombok.AllArgsConstructor;
+
+@AllArgsConstructor
 @EnableWebSecurity
 @Configuration
 public class WebSecurityConfig extends WebSecurityConfigurerAdapter
 {
-	@Autowired
 	private UserService userDetailsService;
-
-	@Autowired
-	private BCryptPasswordEncoder bCryptPasswordEncoder;
-
-	@Autowired
+	private PasswordEncoder passwordEncoder;
 	private AppAccessDeniedHandler accesDeniedHandler;
-
-	@Autowired
 	private AppAuthenticationEntryPoint authenticationEntryPoint;
-
-	@Autowired
 	private AppAuthorizationFilter authorizationFilter;
 
 	@Override
@@ -65,7 +58,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter
 	protected void configure(AuthenticationManagerBuilder auth) throws Exception
 	{
 		auth.userDetailsService(userDetailsService)
-				.passwordEncoder(bCryptPasswordEncoder);
+				.passwordEncoder(passwordEncoder);
 	}
 
 	@Bean
@@ -90,5 +83,4 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter
 
 		return source;
 	}
-
 }
