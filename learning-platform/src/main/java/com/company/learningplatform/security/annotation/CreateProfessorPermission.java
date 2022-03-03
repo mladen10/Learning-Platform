@@ -9,8 +9,8 @@ import org.springframework.security.access.prepost.PreAuthorize;
 
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
-@PreAuthorize("hasRole(@auth.USER_CREATE)")
-public @interface StudentCreatePermission
+@PreAuthorize("hasAuthority(@auth.PROFESSOR_CREATE)")
+public @interface CreateProfessorPermission
 {
 
 }

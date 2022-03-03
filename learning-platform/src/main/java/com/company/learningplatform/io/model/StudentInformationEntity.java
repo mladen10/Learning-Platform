@@ -12,9 +12,6 @@ import lombok.Setter;
 @Table(name = "student_information")
 public class StudentInformationEntity extends UserInformationEntity
 {
-	/**
-	 * 
-	 */
 	private static final long serialVersionUID = -1695038092324871034L;
 	private String studentProperties;
 }

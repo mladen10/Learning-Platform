@@ -22,9 +22,9 @@ public class UserDto
 	private String lastName;
 
 	@Builder.Default
-	private Set<RoleDto> roles = new HashSet<>();
-	@Builder.Default
-	private Set<? extends UserInformationDto> userInformation = new HashSet<>();
+	private Set<String> roles = new HashSet<>();
+
+	private UserInformationDto userInformation;
 
 	private Boolean accountNonExpired;
 

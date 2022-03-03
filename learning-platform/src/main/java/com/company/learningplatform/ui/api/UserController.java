@@ -1,6 +1,8 @@
 package com.company.learningplatform.ui.api;
 
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
@@ -27,6 +29,9 @@ import com.company.learningplatform.constant.SecurityConstant;
 import com.company.learningplatform.event.AppEventPublisher;
 import com.company.learningplatform.event.OnCreateUserEvent;
 import com.company.learningplatform.security.UserPrincipal;
+import com.company.learningplatform.security.annotation.CreateAdminPermission;
+import com.company.learningplatform.security.annotation.CreateProfessorPermission;
+import com.company.learningplatform.security.annotation.CreateStudentPermission;
 import com.company.learningplatform.security.token.JWTProvider;
 import com.company.learningplatform.service.UserService;
 import com.company.learningplatform.shared.Utility;
@@ -54,14 +59,27 @@ public class UserController
 	private ModelMapper modelMapper;
 	private AppEventPublisher appPublisher;
 
+	@PostMapping("/login")
+	public ResponseEntity<UserDto> login(@RequestBody LoginRequestModel loginReq)
+	{
+		authManager.authenticate(new UsernamePasswordAuthenticationToken(loginReq.getEmail(), loginReq.getPassword()));
+		UserPrincipal user = (UserPrincipal) userService.loadUserByUsername(loginReq.getEmail());
+
+		HttpHeaders jwtHeader = getJwtHeader(user);
+		UserDto userDto = modelMapper.map(user.getUserEntity(), UserDto.class);
+
+		return new ResponseEntity<>(userDto, jwtHeader, HttpStatus.OK);
+	}
+
 	@PostMapping(value = "/createStudent")
-	// @StudentCreatePermission
+	@CreateStudentPermission
 	ResponseEntity<GenericResponse> createStudent(@Valid @RequestBody CreateUserRequestModel createUserRequestModel)
 	{
 		return createUser(createUserRequestModel, RoleEnum.STUDENT);
 	}
 
 	@PostMapping(value = "/createProfessor")
+	@CreateProfessorPermission
 	public ResponseEntity<GenericResponse> createProfessor(
 			@Valid @RequestBody CreateUserRequestModel createUserRequestModel)
 	{
@@ -69,20 +87,11 @@ public class UserController
 	}
 
 	@PostMapping(value = "/createAdmin")
+	@CreateAdminPermission
 	public ResponseEntity<GenericResponse> createAdmin(
 			@Valid @RequestBody CreateUserRequestModel createUserRequestModel)
 	{
 		return createUser(createUserRequestModel, RoleEnum.ADMIN);
-	}
-
-	@PostMapping("/login")
-	public ResponseEntity<UserDto> login(@RequestBody LoginRequestModel loginReq)
-	{
-		authManager.authenticate(new UsernamePasswordAuthenticationToken(loginReq.getEmail(), loginReq.getPassword()));
-		UserPrincipal user = (UserPrincipal) userService.loadUserByUsername(loginReq.getEmail());
-		HttpHeaders jwtHeader = getJwtHeader(user);
-		UserDto userDto = modelMapper.map(user.getUserEntity(), UserDto.class);
-		return new ResponseEntity<>(userDto, jwtHeader, HttpStatus.OK);
 	}
 
 	@PutMapping("/changePassword")
@@ -93,8 +102,8 @@ public class UserController
 		boolean isOk = userService.changePassword(email, changePasswordReq.getOldPassword(),
 				changePasswordReq.getNewPassword());
 		if (isOk)
-			return Utility.response(HttpStatus.OK, "neka poruka");
-		return Utility.response(HttpStatus.UNAUTHORIZED, "neka poruka");
+			return Utility.response(HttpStatus.OK, HttpStatus.OK.getReasonPhrase());
+		return Utility.response(HttpStatus.UNAUTHORIZED, HttpStatus.UNAUTHORIZED.getReasonPhrase());
 	}
 
 	@PutMapping("/confirmation")
@@ -103,7 +112,7 @@ public class UserController
 		String email = jwtProvider.getSubject(firstLoginReq.getToken());
 		userService.firstLogin(email, firstLoginReq.getNewPassword());
 
-		return Utility.response(HttpStatus.OK, "neka poruka");
+		return Utility.response(HttpStatus.OK, HttpStatus.OK.getReasonPhrase());
 	}
 
 	@GetMapping("/find/{email}")
@@ -131,11 +140,7 @@ public class UserController
 	@DeleteMapping("/delete/{username}")
 	public ResponseEntity<GenericResponse> deleteUser(@PathVariable("username") String username)
 	{
-		String message = MessageEnum.SUCCESFFUL_DELETE.getMessage();
-		if (!userService.deleteUserByUsername(username))
-			message = MessageEnum.GRESKADELETE.getMessage();
-
-		return Utility.response(HttpStatus.NO_CONTENT, message);
+		return Utility.response(HttpStatus.NO_CONTENT, MessageEnum.SUCCESFFUL_DELETE.getMessage());
 	}
 
 	// ===============================
@@ -144,11 +149,12 @@ public class UserController
 	private HttpHeaders getJwtHeader(UserPrincipal userPrincipal)
 	{
 		HttpHeaders headers = new HttpHeaders();
-		headers.add(SecurityConstant.JWT_TOKEN_HEADER, jwtProvider.generateToken(userPrincipal));
+		headers.add(SecurityConstant.JWT_TOKEN_HEADER,
+				SecurityConstant.TOKEN_PREFIX + jwtProvider.generateToken(userPrincipal));
 		return headers;
 	}
 
-	private <T extends UserInformationDto> ResponseEntity<GenericResponse> createUser(
+	private ResponseEntity<GenericResponse> createUser(
 			CreateUserRequestModel createUserReqModel, RoleEnum role)
 	{
 		userService.createUser(createUserReqModel, role);
@@ -162,31 +168,4 @@ public class UserController
 		return Utility.response(HttpStatus.CREATED, t);
 		// =============================================================================================
 	}
-
-//	@SuppressWarnings("unused")
-//	private <T extends UserInformationDto> ResponseEntity<GenericResponse> createUser(
-//			CreateUserRequestModel createUserRequestModel,
-//			Set<RoleEnum> rolesEnum,
-//			Set<T> userInformationsDto)
-//	{
-//		UserDto userDto = modelMapper.map(createUserRequestModel, UserDto.class);
-//		Set<RoleDto> rolesDto = rolesEnum
-//				.stream()
-//				.map(new Function<RoleEnum, RoleDto>()
-//				{
-//					@Override
-//					public RoleDto apply(RoleEnum t)
-//					{
-//						return RoleDto.builder()
-//								.name(t.name())
-//								.build();
-//					}
-//				})
-//				.collect(Collectors.toSet());
-//		userDto.setRoles(rolesDto);
-//		userDto.setUserInformation(userInformationsDto);
-//
-//		return Utility.response(HttpStatus.CREATED, MessageEnum.SUCCESFFUL_CREATE.getMessage());
-//	}
-
 }

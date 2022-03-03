@@ -34,7 +34,7 @@ public class AppExceptionHandler implements ErrorController
 	@ExceptionHandler(value = { ConstraintViolationException.class })
 	public ResponseEntity<GenericResponse> handleConstraintViolationException(ConstraintViolationException e)
 	{
-		log.error(e.getMessage(), e);
+		log.info(e.getLocalizedMessage());
 		return Utility.response(HttpStatus.BAD_REQUEST,
 				ErrorMessageEnum.CONSTRAINT_VIOLATION.getMessage());
 	}
@@ -42,7 +42,7 @@ public class AppExceptionHandler implements ErrorController
 	@ExceptionHandler(value = { UserAlreadyExistsException.class })
 	public ResponseEntity<GenericResponse> handleUserAlreadyExistException(UserAlreadyExistsException e)
 	{
-		log.error(e.getMessage(), e);
+		log.info(e.getLocalizedMessage());
 		return Utility.response(HttpStatus.BAD_REQUEST,
 				ErrorMessageEnum.USER_ALREADY_EXIST.getMessage());
 	}
@@ -50,7 +50,7 @@ public class AppExceptionHandler implements ErrorController
 	@ExceptionHandler(value = { RoleNotFoundException.class })
 	public ResponseEntity<GenericResponse> handleUserAlreadyExistException(RoleNotFoundException e)
 	{
-		log.error(e.getMessage(), e);
+		log.info(e.getLocalizedMessage());
 		return Utility.response(HttpStatus.BAD_REQUEST,
 				ErrorMessageEnum.USER_ALREADY_EXIST.getMessage());
 	}
@@ -58,7 +58,7 @@ public class AppExceptionHandler implements ErrorController
 	@ExceptionHandler(value = { Exception.class })
 	public ResponseEntity<GenericResponse> handleOtherExceptions(Exception e)
 	{
-		log.error(e.getMessage(), e);
+		log.info(e.getLocalizedMessage());
 		return Utility.response(HttpStatus.INTERNAL_SERVER_ERROR,
 				ErrorMessageEnum.INTERNAL_SERVER_ERROR.getMessage());
 	}

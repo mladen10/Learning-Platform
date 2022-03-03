@@ -1,14 +1,20 @@
 package com.company.learningplatform.configuration;
 
+import java.util.HashSet;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import org.modelmapper.Converter;
 import org.modelmapper.ModelMapper;
 import org.modelmapper.Provider;
-import org.modelmapper.Provider.ProvisionRequest;
 import org.modelmapper.TypeMap;
+import org.modelmapper.spi.MappingContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import com.company.learningplatform.io.model.AdminInformationEntity;
 import com.company.learningplatform.io.model.ProfessorInformationEntity;
+import com.company.learningplatform.io.model.RoleEntity;
 import com.company.learningplatform.io.model.StudentInformationEntity;
 import com.company.learningplatform.io.model.UserEntity;
 import com.company.learningplatform.io.model.UserInformationEntity;
@@ -16,7 +22,6 @@ import com.company.learningplatform.shared.dto.AdminInformationDto;
 import com.company.learningplatform.shared.dto.ProfessorInformationDto;
 import com.company.learningplatform.shared.dto.StudentInformationDto;
 import com.company.learningplatform.shared.dto.UserDto;
-import com.company.learningplatform.shared.dto.UserInformationDto;
 
 @Configuration
 public class ModelMapperConfig
@@ -25,10 +30,42 @@ public class ModelMapperConfig
 	public ModelMapper modelMapper()
 	{
 		ModelMapper modelMapper = new ModelMapper();
+		modelMapper = userEntityToDtoTypeMap(modelMapper);
+		modelMapper = userDtoToEntityTypeMap(modelMapper);
 
-		TypeMap<UserDto, UserEntity> propertyMapper = modelMapper
-				.createTypeMap(UserDto.class, UserEntity.class);
-		propertyMapper
+//		modelMapper.typeMap(StudentInformationDto.class, UserInformationEntity.class)
+//				.setProvider(new Provider<UserInformationEntity>()
+//				{
+//					public UserInformationEntity get(ProvisionRequest<UserInformationEntity> request)
+//					{
+//						return new StudentInformationEntity();
+//					}
+//				});
+//
+//		modelMapper.typeMap(ProfessorInformationDto.class, UserInformationEntity.class)
+//				.setProvider(new Provider<UserInformationEntity>()
+//				{
+//					public UserInformationEntity get(ProvisionRequest<UserInformationEntity> request)
+//					{
+//						return new ProfessorInformationEntity();
+//					}
+//				});
+//
+//		modelMapper.typeMap(AdminInformationDto.class, UserInformationEntity.class)
+//				.setProvider(new Provider<UserInformationEntity>()
+//				{
+//					public UserInformationEntity get(ProvisionRequest<UserInformationEntity> request)
+//					{
+//						return new AdminInformationEntity();
+//					}
+//				});
+
+		return modelMapper;
+	}
+
+	private ModelMapper userDtoToEntityTypeMap(ModelMapper modelMapper)
+	{
+		modelMapper.typeMap(UserDto.class, UserEntity.class)
 				.addMappings(mapper -> {
 					mapper.skip(UserEntity::setId);
 					mapper.skip(UserEntity::setAccountNonExpired);
@@ -38,44 +75,27 @@ public class ModelMapperConfig
 					mapper.skip(UserEntity::setUsername);
 				});
 
-//		modelMapper.createTypeMap(UserInformationDto.class, UserInformationEntity.class)
-//				.include(StudentInformationDto.class, StudentInformationEntity.class)
-//				.include(AdminInformationDto.class, AdminInformationEntity.class)
-//				.include(ProfessorInformationDto.class, ProfessorInformationEntity.class);
+		return modelMapper;
+	}
 
-//		modelMapper.typeMap(BaseSrcA.class, BaseDest.class).setProvider(new Provider<BaseDest>()
-//		{
-//			public BaseDest get(ProvisionRequest<BaseDest> request)
-//			{
-//				return new BaseDestA();
-//			}
-//		});
+	private ModelMapper userEntityToDtoTypeMap(ModelMapper modelMapper)
+	{
 
-		modelMapper.typeMap(StudentInformationDto.class, UserInformationEntity.class)
-				.setProvider(new Provider<UserInformationEntity>()
-				{
-					public UserInformationEntity get(ProvisionRequest<UserInformationEntity> request)
-					{
-						return new StudentInformationEntity();
-					}
-				});
+		Converter<Set<RoleEntity>, Set<String>> roleEntityToDtoCnv = new Converter<>()
+		{
+			@Override
+			public Set<String> convert(MappingContext<Set<RoleEntity>, Set<String>> context)
+			{
+				return context.getSource().stream()
+						.map(RoleEntity::getName)
+						.collect(Collectors.toCollection(HashSet::new));
+			}
+		};
 
-		modelMapper.typeMap(ProfessorInformationDto.class, UserInformationEntity.class)
-				.setProvider(new Provider<UserInformationEntity>()
-				{
-					public UserInformationEntity get(ProvisionRequest<UserInformationEntity> request)
-					{
-						return new ProfessorInformationEntity();
-					}
-				});
-
-		modelMapper.typeMap(AdminInformationDto.class, UserInformationEntity.class)
-				.setProvider(new Provider<UserInformationEntity>()
-				{
-					public UserInformationEntity get(ProvisionRequest<UserInformationEntity> request)
-					{
-						return new AdminInformationEntity();
-					}
+		modelMapper
+				.typeMap(UserEntity.class, UserDto.class).addMappings(mapper -> {
+					mapper.using(roleEntityToDtoCnv).map(UserEntity::getRoles, UserDto::setRoles);
+					mapper.skip(UserDto::setUserInformation);
 				});
 
 		return modelMapper;

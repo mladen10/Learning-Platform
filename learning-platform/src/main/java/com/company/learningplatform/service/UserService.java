@@ -13,10 +13,6 @@ import com.company.learningplatform.ui.model.request.CreateUserRequestModel;
 
 public interface UserService extends UserDetailsService
 {
-	@Transactional
-	void createUser(UserDto userDto) throws UserAlreadyExistsException;
-
-	@Transactional
 	UserDto createUser(CreateUserRequestModel createUserReqModel, RoleEnum role)
 			throws UserAlreadyExistsException, RoleNotFoundException;
 
@@ -24,12 +20,11 @@ public interface UserService extends UserDetailsService
 
 	void updateUser(UserDto userDto);
 
-	boolean deleteUserByUsername(String email);
+	void deleteUserByUsername(String email);
 
 	List<UserDto> getUsers(int page, int limit);
 
 	boolean changePassword(String email, String oldPassword, String newPassword);
 
 	void firstLogin(String email, String newPassword);
-
 }

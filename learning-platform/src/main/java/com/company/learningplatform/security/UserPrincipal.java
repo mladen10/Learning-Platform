@@ -9,6 +9,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import com.company.learningplatform.SpringApplicationContext;
 import com.company.learningplatform.io.model.UserEntity;
 
 import lombok.Getter;
@@ -23,7 +24,7 @@ public class UserPrincipal implements UserDetails, CredentialsContainer
 	private static final long serialVersionUID = -831300089880427699L;
 
 	private final UserEntity userEntity;
-	private PermisionHolder permisions;
+	private static PermisionHolder permisions = (PermisionHolder) SpringApplicationContext.getBean("permisionHolder");
 
 	@Override
 	public Collection<? extends GrantedAuthority> getAuthorities()

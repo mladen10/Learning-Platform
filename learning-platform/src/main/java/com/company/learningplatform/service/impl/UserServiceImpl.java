@@ -1,7 +1,5 @@
 package com.company.learningplatform.service.impl;
 
-import java.util.EnumSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -21,6 +19,7 @@ import com.company.learningplatform.exception.UserAlreadyExistsException;
 import com.company.learningplatform.io.model.AdminInformationEntity;
 import com.company.learningplatform.io.model.ProfessorInformationEntity;
 import com.company.learningplatform.io.model.RoleEntity;
+import com.company.learningplatform.io.model.RootAdminInformationEntity;
 import com.company.learningplatform.io.model.StudentInformationEntity;
 import com.company.learningplatform.io.model.UserEntity;
 import com.company.learningplatform.io.model.UserInformationEntity;
@@ -47,40 +46,11 @@ public class UserServiceImpl implements UserService
 	@Override
 	public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException
 	{
-		return new UserPrincipal(userRepository
-				.findByEmail(email)
-				.orElseThrow(() -> {
-					throw new UsernameNotFoundException(MessageEnum.USERNAME_NOT_FOUND.getMessage());
-				}));
+		return new UserPrincipal(this.findByEmail(email));
 	}
 
 	@Override
 	@Transactional
-	public void createUser(UserDto userDto) throws UserAlreadyExistsException
-	{
-		userRepository.findByEmail(userDto.getEmail()).ifPresent(u -> {
-			throw new UserAlreadyExistsException(MessageEnum.USER_ALREADY_EXISTS_EXCEPTION.getMessage());
-		});
-
-		Set<RoleEntity> roles = roleRepository
-				.findRolesByNames(userDto.getRoles()
-						.stream()
-						.map(role -> role.getName())
-						.collect(Collectors.toList()))
-				.get();
-
-		UserEntity userEntity = modelMapper.map(userDto, UserEntity.class);
-
-		userEntity.setPassword(passwordEncoder.encode(UserConstant.TEMP_PASSWORD));
-		userEntity.setRoles(roles);
-		userEntity.setUsername(userDto.getEmail());
-		userEntity.setUserInformation(mapList(userDto.getUserInformation(), UserInformationEntity.class));
-		userEntity.getUserInformation().stream().forEach(e -> e.setUser(userEntity));
-
-		userRepository.save(userEntity);
-	}
-
-	@Override
 	public UserDto createUser(CreateUserRequestModel createUserReqModel, RoleEnum role)
 			throws UserAlreadyExistsException, RoleNotFoundException
 	{
@@ -88,13 +58,13 @@ public class UserServiceImpl implements UserService
 			throw new UserAlreadyExistsException(MessageEnum.USER_ALREADY_EXISTS_EXCEPTION.getMessage());
 		});
 
-		RoleEntity roleEntity = roleService.<RoleEntity>findByName(role.name(), RoleEntity.class);
+		RoleEntity roleEntity = roleService.findByName(role.name(), RoleEntity.class);
 
 		UserEntity userEntity = modelMapper.map(createUserReqModel, UserEntity.class);
 		userEntity.getRoles().add(roleEntity);
 		userEntity.setPassword(passwordEncoder.encode(UserConstant.TEMP_PASSWORD));
-		userEntity.getUserInformation().add(createUserInformationBasedOnRole(role));
-		userEntity.getUserInformation().iterator().next().setUser(userEntity);
+		userEntity.setUserInformation(createUserInformationBasedOnRole(role));
+		userEntity.getUserInformation().setUser(userEntity);
 
 		return modelMapper.map(userRepository.save(userEntity), UserDto.class);
 	}
@@ -117,7 +87,7 @@ public class UserServiceImpl implements UserService
 
 	@Override
 	@Transactional
-	public boolean deleteUserByUsername(String username) throws UsernameNotFoundException
+	public void deleteUserByUsername(String username) throws UsernameNotFoundException
 	{
 		UserEntity user = userRepository.findByEmail(username).orElseThrow(() -> {
 			throw new UsernameNotFoundException(MessageEnum.USERNAME_NOT_FOUND.getMessage());
@@ -128,8 +98,6 @@ public class UserServiceImpl implements UserService
 					roleRepository.save(role);
 				});
 		userRepository.delete(user);
-
-		return true;
 	}
 
 	@Override
@@ -155,8 +123,11 @@ public class UserServiceImpl implements UserService
 	public void firstLogin(String email, String newPassword)
 	{
 		UserEntity user = this.findByEmail(email);
-		user.setPassword(passwordEncoder.encode(newPassword));
-		userRepository.save(user);
+		if (!user.getEnabled()) {
+			user.setPassword(passwordEncoder.encode(newPassword));
+			user.setEnabled(true);
+			userRepository.save(user);
+		}
 	}
 
 	// ===============================
@@ -176,8 +147,10 @@ public class UserServiceImpl implements UserService
 			return new StudentInformationEntity();
 		} else if (role.equals(RoleEnum.PROFFESOR)) {
 			return new ProfessorInformationEntity();
-		} else if (role.equals(RoleEnum.ADMIN) || role.equals(RoleEnum.ROOT_ADMIN)) {
+		} else if (role.equals(RoleEnum.ADMIN)) {
 			return new AdminInformationEntity();
+		} else if (role.equals(RoleEnum.ROOT_ADMIN)) {
+			return new RootAdminInformationEntity();
 		}
 		return null;
 	}
@@ -189,13 +162,4 @@ public class UserServiceImpl implements UserService
 				.map(element -> modelMapper.map(element, targetClass))
 				.collect(Collectors.toList());
 	}
-
-	private <S, T> Set<T> mapList(Set<S> source, Class<T> targetClass)
-	{
-		return source
-				.stream()
-				.map(element -> modelMapper.map(element, targetClass))
-				.collect(Collectors.toSet());
-	}
-
 }

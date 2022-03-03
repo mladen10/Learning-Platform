@@ -15,6 +15,7 @@ import javax.persistence.JoinColumn;
 import javax.persistence.JoinTable;
 import javax.persistence.ManyToMany;
 import javax.persistence.OneToMany;
+import javax.persistence.OneToOne;
 import javax.persistence.Table;
 
 import lombok.Getter;
@@ -50,10 +51,10 @@ public class UserEntity implements Serializable
 	@Column(nullable = false)
 	private String lastName;
 
-	@OneToMany(	mappedBy = "user",
+	@OneToOne(	mappedBy = "user",
 				cascade = { CascadeType.REMOVE, CascadeType.MERGE, CascadeType.PERSIST },
 				fetch = FetchType.EAGER)
-	private Set<UserInformationEntity> userInformation = new HashSet<>();
+	private UserInformationEntity userInformation;
 
 	@ManyToMany(cascade = { CascadeType.MERGE },
 				fetch = FetchType.EAGER)

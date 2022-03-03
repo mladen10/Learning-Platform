@@ -10,5 +10,4 @@ public class AuthorityConstant
 	public static final String ADMIN_CREATE = "admin-create";
 	public static final String USER_UPDATE = "user-update";
 	public static final String USER_DELETE = "user-delete";
-
 }

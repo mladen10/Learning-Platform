@@ -1,5 +1,6 @@
 package com.company.learningplatform.io.model;
 
+import java.io.Serializable;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -43,8 +44,11 @@ import lombok.Setter;
 @Entity
 @Table(name = "role")
 @Builder
-public class RoleEntity
+public class RoleEntity implements Serializable
 {
+
+	private static final long serialVersionUID = 8083210716751689285L;
+
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Integer id;

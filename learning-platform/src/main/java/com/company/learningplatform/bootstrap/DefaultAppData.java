@@ -12,12 +12,16 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import com.company.learningplatform.constant.RoleEnum;
 import com.company.learningplatform.io.model.AuthorityEntity;
 import com.company.learningplatform.io.model.RoleEntity;
+import com.company.learningplatform.io.model.RootAdminInformationEntity;
+import com.company.learningplatform.io.model.UserEntity;
 import com.company.learningplatform.io.repository.AuthorityRepository;
+import com.company.learningplatform.io.repository.UserRepository;
 import com.company.learningplatform.service.RoleService;
 
 import lombok.AllArgsConstructor;
@@ -28,6 +32,8 @@ public class DefaultAppData implements CommandLineRunner
 {
 	private RoleService roleService;
 	private AuthorityRepository authorityRepository;
+	private UserRepository userRepository;
+	private PasswordEncoder passwordEncoder;
 
 	@Override
 	public void run(String... args) throws Exception
@@ -36,7 +42,23 @@ public class DefaultAppData implements CommandLineRunner
 
 		createDefaultPermisions();
 
+		createRootAdmin();
+
 		System.out.println("\n---------------------BOOTSTRAP END---------------------\n");
+	}
+
+	private void createRootAdmin()
+	{
+		UserEntity rootAdmin = new UserEntity();
+		rootAdmin.setFirstName("RA_Name");
+		rootAdmin.setLastName("RA_LastName");
+		rootAdmin.setPassword(passwordEncoder.encode("1111"));
+		rootAdmin.setEmail("rootadmin@email.com");
+		rootAdmin.setEnabled(true);
+		rootAdmin.setUserInformation(new RootAdminInformationEntity());
+		rootAdmin.getUserInformation().setUser(rootAdmin);
+		rootAdmin.getRoles().add(roleService.findByName(RoleEnum.ROOT_ADMIN.name(), RoleEntity.class));
+		userRepository.save(rootAdmin);
 	}
 
 	private void createDefaultPermisions()

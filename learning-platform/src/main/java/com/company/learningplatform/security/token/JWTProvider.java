@@ -36,9 +36,11 @@ public class JWTProvider
 				.withIssuer(SecurityConstant.ISSUER)
 				.withIssuedAt(new Date())
 				.withSubject(userPrincipal.getUsername())
-				.withArrayClaim(SecurityConstant.AUTHORITIES, userPrincipal.getAuthorities().toArray(new String[0]))
+				.withArrayClaim(SecurityConstant.AUTHORITIES,
+						userPrincipal.getAuthorities().stream().map(e -> e.getAuthority()).collect(Collectors.toList())
+								.toArray(new String[0]))
 				.withExpiresAt(new Date(System.currentTimeMillis() + SecurityConstant.EXPIRATION_TIME))
-				.sign(Algorithm.HMAC256(secret.getBytes()));
+				.sign(Algorithm.HMAC512(secret.getBytes()));
 
 		return jwt;
 	}
@@ -50,7 +52,7 @@ public class JWTProvider
 				.withIssuedAt(new Date())
 				.withExpiresAt(new Date(System.currentTimeMillis() + SecurityConstant.FIRST_LOGIN_EXPIRATION_TIME))
 				.withSubject(email)
-				.sign(Algorithm.HMAC256(secret.getBytes()));
+				.sign(Algorithm.HMAC512(secret.getBytes()));
 
 		return jwt;
 	}
@@ -63,7 +65,7 @@ public class JWTProvider
 	public boolean isTokenValid(String username, String token)
 	{
 		return StringUtils.isNotEmpty(username)
-				&& isTokenExpired(getJWTVerifier(), token);
+				&& !isTokenExpired(getJWTVerifier(), token);
 	}
 
 	public Set<GrantedAuthority> getAuthorities(String token)
@@ -93,7 +95,7 @@ public class JWTProvider
 	private JWTVerifier getJWTVerifier()
 	{
 		try {
-			return JWT.require(Algorithm.HMAC512(secret))
+			return JWT.require(Algorithm.HMAC512(secret.getBytes()))
 					.withIssuer(SecurityConstant.ISSUER)
 					.build();
 		} catch (JWTVerificationException e) {
